@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:int="http://www.springframework.org/schema/integration"
+       xmlns:int-stream="http://www.springframework.org/schema/integration/stream"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/integration/stream
+       http://www.springframework.org/schema/integration/stream/spring-integration-stream.xsd
+       http://www.springframework.org/schema/integration
+       http://www.springframework.org/schema/integration/spring-integration.xsd">
+       
+       
+    <import resource="classpath:jdbc-app-integration-config.xml" />
+    <!-- <import resource="classpath:rabbitmq-producer-config.xml" /> -->
+	<!-- <import resource="classpath:rabbitmq-producer-integration-config.xml" /> -->
+	<bean id="producer" class="com.javalearn.integration.MessageProducer" />
+	<bean id="consumer" class="com.javalearn.integration.MessageConsumer"/>
+	
+	<int:channel id="channel" />
+	<int:inbound-channel-adapter ref="producer" auto-startup="true" id="inAdapter" channel="channel" method="produce">
+	<int:poller fixed-rate="1000" />
+    </int:inbound-channel-adapter>
+	
+	<int:outbound-channel-adapter ref="consumer" id="outAdapter" channel="channel" method="consume">
+    </int:outbound-channel-adapter>
+    
+    
+    
+    
+    <int:channel id="inChannel"/>
+    <int:gateway  id="gateway1" default-request-channel="inChannel" 
+     service-interface="com.javalearn.integration.GateWayService"/>
+	
+	<int:service-activator input-channel="inChannel" method="consumeGateWay">
+	 <bean class="com.javalearn.integration.GateWayServiceActivator"/>
+    </int:service-activator>
+	
+	
+</beans>

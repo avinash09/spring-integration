@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+       xmlns:int="http://www.springframework.org/schema/integration"
+       xmlns:int-jdbc="http://www.springframework.org/schema/integration/jdbc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
+       http://www.springframework.org/schema/integration/jdbc http://www.springframework.org/schema/integration/jdbc/spring-integration-jdbc.xsd
+       http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd">
+    
+    <bean id="dataSource" 
+      class = "org.springframework.jdbc.datasource.DriverManagerDataSource">
+      <property name = "driverClassName" value = "com.mysql.jdbc.Driver"/>
+      <property name = "url" value = "jdbc:mysql://localhost:3306/demo"/>
+      <property name = "username" value = "root"/>
+      <property name = "password" value = "Holiday@123"/>
+   </bean>
+   
+    <bean id="bookRowMapper"
+          class="com.javalearn.integration.jdbc.BookRowMapper"/>
+
+    <int:channel id="jdbc-channel"/>
+
+    <int-jdbc:inbound-channel-adapter id="jdbcInbound"
+                                      channel="jdbc-channel"
+                                      data-source="dataSource"
+                                      query="SELECT * FROM BOOKS"
+                                      row-mapper="bookRowMapper">
+    <int:poller fixed-rate="1000"/>
+    </int-jdbc:inbound-channel-adapter>
+
+	<bean id="bookConsumer" class="com.javalearn.integration.jdbc.BookConsumer"/>
+    <int:outbound-channel-adapter ref="bookConsumer" id="outbound" channel="jdbc-channel" method="consume"> 
+    </int:outbound-channel-adapter>
+    
+    
+    <int:channel id="jdbc-outbound-channel"/>
+    <int:inbound-channel-adapter channel="jdbc-outbound-channel" method="produce" >
+        <bean class="com.javalearn.integration.jdbc.BookDataProducer"/>
+        <int:poller fixed-rate="1000"/>
+    </int:inbound-channel-adapter>
+    <int-jdbc:outbound-channel-adapter id="jdbcOutbound"
+                                       channel="jdbc-outbound-channel"
+                                       data-source="dataSource"
+                                       sql-parameter-source-factory="sqlParameterSource"
+                                       query="update BOOKS set status='p'"/>
+    <bean id="sqlParameterSource"   class="org.springframework.integration.jdbc.ExpressionEvaluatingSqlParameterSourceFactory">
+        <property name="parameterExpressions">
+            <map>
+                <entry key="title" value="payload.title"/>
+                <entry key="price" value="payload.price"/>
+            </map>
+        </property>
+    </bean>
+</beans>
